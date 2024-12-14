@@ -6,6 +6,7 @@ import { Model } from 'mongoose';
 import { TVShow, TVShowDocument } from 'src/models/tvshow.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from 'src/models/user.schema';
+import { GetListDto } from './dto/get-list.dto';
 
 @Injectable()
 export class UserListService {
@@ -26,6 +27,23 @@ export class UserListService {
       .exec();
     if (!content) {
       throw new HttpException('Content not found', HttpStatus.BAD_REQUEST);
+    }
+    return content;
+  }
+
+  private async fetchContentList(contentIds: string[], type: ContentType) {
+    if (!contentIds.length) {
+      return [];
+    }
+    const contentModel =
+      type === ContentType.Movie ? this.movieModel : this.tvShowModel;
+    const content = await (
+      contentModel as Model<MovieDocument | TVShowDocument>
+    )
+      .find({ _id: { $in: contentIds } })
+      .exec();
+    if (!content) {
+      [];
     }
     return content;
   }
@@ -54,6 +72,7 @@ export class UserListService {
 
   private async checkUserList(user: UserDocument, contentId: string) {
     const userList = new Set(user.myList.map((e) => e.contentId));
+
     if (userList.has(contentId)) {
       throw new HttpException(
         'Content already in list',
@@ -93,12 +112,56 @@ export class UserListService {
     return contentType || (await this.fetchContentType(contentId));
   }
 
-  async removeFromList() {
-    throw new Error('Method not implemented.');
+  async removeFromList(userId: string, contentId: string) {
+    const user = await this.fetchUser(userId);
+    const contentIndex = user.myList.findIndex(
+      (item) => item.contentId === contentId,
+    );
+    if (contentIndex === -1) {
+      throw new HttpException('Content not found', HttpStatus.BAD_REQUEST);
+    }
+    user.myList.splice(contentIndex, 1);
+    await user.save();
+    return {
+      message: 'Content removed from list',
+      contentId,
+    };
   }
 
-  async listMyItems() {
-    throw new Error('Method not implemented.');
+  async getListForUser(userId: string, limit: number, offset: number) {
+    const user = await this.fetchUser(userId);
+    return user.myList.slice(offset, offset + limit);
+  }
+  async listMyItems(userId: string, listDto: GetListDto) {
+    const list = await this.getListForUser(
+      userId,
+      Number(listDto.limit || 20),
+      Number(listDto.offset || 0),
+    );
+
+    const contentIdsByType = list.reduce(
+      (acc, item) => {
+        acc[item.contentType].push(item.contentId);
+        return acc;
+      },
+      { [ContentType.Movie]: [], [ContentType.TVShow]: [] } as Record<
+        ContentType,
+        string[]
+      >,
+    );
+
+    const [movies, tvShows] = await Promise.all([
+      this.fetchContentList(
+        contentIdsByType[ContentType.Movie],
+        ContentType.Movie,
+      ),
+      this.fetchContentList(
+        contentIdsByType[ContentType.TVShow],
+        ContentType.TVShow,
+      ),
+    ]);
+
+    return [...movies, ...tvShows];
   }
 
   async listUser() {

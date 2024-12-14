@@ -1,8 +1,16 @@
-import { IsNotEmpty, IsNumber, IsPositive, Max, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  Max,
+  Min,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class GetListDto {
   @ApiProperty()
+  @IsOptional()
   @IsNotEmpty()
   @IsNumber()
   @IsPositive()
@@ -11,6 +19,7 @@ export class GetListDto {
   limit: number;
 
   @ApiProperty()
+  @IsOptional()
   @IsNotEmpty()
   @IsNumber()
   @Min(0)
