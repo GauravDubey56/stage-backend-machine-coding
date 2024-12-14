@@ -5,7 +5,7 @@ import {
   Body,
   UseGuards,
   Request,
-  Delete
+  Delete,
 } from '@nestjs/common';
 import { UserListService } from './list.service';
 import { AddToListDto } from './dto/add-to-list.dto';
@@ -34,6 +34,9 @@ export class UserListController {
   @UseGuards(JwtAuthGuard)
   @Delete()
   async delete(@Request() req) {
-    return this.userListService.removeFromList(req.user.userId, req.query.contentId);
+    return this.userListService.removeFromList(
+      req.user.userId,
+      req.query.contentId,
+    );
   }
 }
