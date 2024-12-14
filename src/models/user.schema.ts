@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 export type UserDocument = User & Document;
-import { genre } from '../constants/constants';
+import { contentType, genre } from '../constants/constants';
 
 @Schema()
 export class User {
@@ -44,13 +44,19 @@ export class User {
   @Prop([
     {
       contentId: { type: String, required: true },
-      contentType: { type: String, enum: ['Movie', 'TVShow'], required: true },
+      contentType: { type: String, enum: contentType, required: true },
     },
   ])
   myList: {
     contentId: string;
     contentType: string;
   }[];
+
+  @Prop({ required: true })
+  password: string;
+
+  @Prop({ required: true })
+  email: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
